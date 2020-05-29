@@ -1,0 +1,7 @@
+Anaconda3>Virtual env no inheritance > in Terminal: install tc_python> rest of the packages
+pip install C:\Users\armin\OneDrive\Documents\Thermo-Calc\2018b\SDK\TC-Python\TC_Python-2018.2.14768-py3-none-any.whl
+pip uninstall tc_python
+pip show tc_python
+C:\Users\armin\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Anaconda3 (64-bit)
+
+
