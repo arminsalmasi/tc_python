@@ -9,21 +9,48 @@ import pandas as pd
 
 
 def manyPoints(system,conditions):
-        calc = system.with_single_equilibrium_calculation().with_reference_state("c","graphite")
-        volume_fractions,phase_fractions,weight_fractions,xs_in_phases,ys_in_phases,activities,chemical_potentials,sps,bn =[],[],[],[],[],[],[],[],[]
-        for key in conditions.keys():
-            calc.run_poly_command("set_condition "+key+"="+str(conditions[key]))
-        # calc.run_poly_command("list_condition ")
-        results = calc.calculate()
-        return results
+    """
+    manyPoints
+        # input
+        # output
+    """
+    
+    calc = system.with_single_equilibrium_calculation().with_reference_state("c","graphite")
+    volume_fractions,phase_fractions,weight_fractions,xs_in_phases,ys_in_phases,activities,chemical_potentials,sps,bn =[],[],[],[],[],[],[],[],[]
+    for key in conditions.keys():
+        calc.run_poly_command("set_condition "+key+"="+str(conditions[key]))
+    # calc.run_poly_command("list_condition ")
+    results = calc.calculate()
+    return results
 def read_phase_results(stable_phases,calculation_results) :
-                volume_fractions_temp,phase_fractions_temp=[],[]
-                for phase in stable_phases:
-                    volume_fractions_temp.append({'vpv({})'.format(phase):calculation_results.get_value_of('vpv({})'.format(phase))})
-                    phase_fractions_temp.append({'npm({})'.format(phase):calculation_results.get_value_of('npm({})'.format(phase))})
-                return(volume_fractions_temp,phase_fractions_temp)
+    """
+    read_phase_results
+        # input
+            compostable_phasesnents:  list of strings,
+            calculation_results: TC_python calcualgtion result object
+        # output
+            volume_fractions_temp: list of floats, volume fractions of pahses
+            phase_fractions_temp: list of floats, phase fractions of phases 
+    """
+    
+    volume_fractions_temp,phase_fractions_temp=[],[]
+    for phase in stable_phases:
+        volume_fractions_temp.append({'vpv({})'.format(phase):calculation_results.get_value_of('vpv({})'.format(phase))})
+        phase_fractions_temp.append({'npm({})'.format(phase):calculation_results.get_value_of('npm({})'.format(phase))})
+    return(volume_fractions_temp,phase_fractions_temp)
                     
 def read_elemental_results(components, calculation_results) :
+    """
+    read_binary_results
+        # input
+            components:  list of strings (ALL KAPITAL),
+            calculation_results: TC_python calcualgtion result object
+        # output
+            weight_fractions_temp: list of floats, weight fractions of compenents in the system
+            mole_fractions_temp: list of floats, mole fractions of compenents in the system 
+            chemical_potentials_temp: list of floats, chemical potential of components
+    """
+    
     weight_fractions_temp,mole_fractions_temp,chemical_potentials_temp=[],[],[]    
     for element in components:
         weight_fractions_temp.append({'w({})'.format(element):calculation_results.get_value_of('w({})'.format(element))})
@@ -31,7 +58,18 @@ def read_elemental_results(components, calculation_results) :
         chemical_potentials_temp.append({'mu({})'.format(element):calculation_results.get_value_of('mu({})'.format(element))})
     return (weight_fractions_temp,mole_fractions_temp,chemical_potentials_temp)           
 
-def read_binary_results(components,stable_phases, calculation_results) :
+def read_binary_results(components,stable_phases,calculation_results) :
+    """
+    read_binary_results
+        # input
+            components:  list of strings (ALL KAPITAL),
+            stable_phases: list of strings (ALL KAPITAL),
+            calculation_results: TC_python calcualgtion result object
+        # output
+            xs_in_phases_temp: list of floats, mole fractions of compenents in phases
+            ys_in_phases_temp: list of floats, site fractions of compenents in phases
+            activities_temp: list of floats,  activities of phases with respect to stable_phases
+    """
     binaries = list(itertool.product(stable_phases, components))
     xs_in_phases_temp,ys_in_phases_temp,activities_temp=[],[],[]
     for binary in binaries:
@@ -47,7 +85,21 @@ def read_binary_results(components,stable_phases, calculation_results) :
     return(xs_in_phases_temp,ys_in_phases_temp,activities_temp)
             
 
-def map_ac_w(database,components,phases,preset_conditions,mapping_conditions):    
+def map_equilibrium(database,components,phases,preset_conditions,mapping_conditions):
+    """  
+    map_equilibrium calcualts equilibrium on a meshgrid of 2 thermodynamics variables
+
+        # input:
+            database name: string,
+            preset_conditions dictionary of preset condition : {"n":1,"P":1e5,"T":1673,"W(CO)":[],"ac(c,graphite)":[]}
+            mapping_conditions dictionary of mapping condition (size 2) : {"ac(c,graphite)":np.arange(0.3, 1, 0.01),"W(CO)":np.arange(0.01 ,0.2, 0.001)}
+            components:  list of strings (ALL KAPITAL),
+            phases list of strings (ALL KAPITAL), if empty all phases from the database are included
+ 
+        # output: Dictionary {"stable_phases":sps,"npms":phase_fractions,"vpvs":volume_fractions,"ws":weight_fractions,"xs":mole_fractions,"xiph":xs_in_phases,
+                "ys":ys_in_phases,"acs":activities,"mus":chemical_potentials }
+    """
+    
     assert len(mapping_conditions)==2
     with TCPython() as start:
         if not phases:
@@ -91,13 +143,13 @@ def main():
     database = "TCFE8"
     components=("C","CO","W")
     preset_conditions={"n":1,"P":1e5,"T":1673,"W(CO)":[],"ac(c,graphite)":[]}
-    mapping_conditions={"ac(c,graphite)":np.arange(0.3, 1, 0.01),"W(CO)":np.arange(0.01 ,0.2, 0.001)}
+    mapping_conditions={"ac(c,graphite)":np.arange(0.3, 0.4, 0.1),"W(CO)":np.arange(0.01 ,0.4, 0.01)}
     phases = ["liquid", "fcc", "mc_shp", "graphite"]
-    res=map_ac_w(database,components,phases,preset_conditions,mapping_conditions)
+    res=map_equilibrium(database,components,phases,preset_conditions,mapping_conditions)
     
-    js = json.dumps(res)
+    js1 = json.dumps(res)
     f = open("res.json","w")
-    f.write(js)
+    f.write(js1)
     f.close()
 
 if __name__ == "__main__":
